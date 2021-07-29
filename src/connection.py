@@ -59,7 +59,7 @@ class QDXLinkedInSpyder:
         self.contact_info_url_extension = '/detail/contact-info'
         self.contact_info_url_extension_country_replacement = self.__COUNTRIES__.get(country.capitalize()) + '.'
 
-    def get_company_employees(self, company_name: str, retrievals: int = 30, elapse: int = 11, limit: int = 50000): # TODO: ADD Google anti-blocker's policy parameters
+    def get_company_employees(self, company_name: str, retrievals: int = 5, elapse: int = 11, limit: int = 50000): # TODO: ADD Google anti-blocker's policy parameters
         """
         This method
 
@@ -103,7 +103,7 @@ class QDXLinkedInSpyder:
             driver.get(self.linkedin_url)
             username = driver.find_element_by_xpath(self.username_xpath)
             username.send_keys(self.username)
-            time.sleep(3)
+            time.sleep(3) # TODO: change these int values (sleeping) to random numbers in a given range
             password = driver.find_element_by_xpath(self.password_xpath)
             password.send_keys(self.password)
             time.sleep(3)
@@ -126,7 +126,7 @@ class QDXLinkedInSpyder:
         return self.web_driver.quit()
 
     def get_raw_data(self, driver_obj: selenium.webdriver, people_urls: list, content_retrieval: str = 'profile',
-                     save_data: bool = True, filepath: str = 'default'):
+                     save_data: bool = True, filepath: str = 'default'): # TODO: review contact-info endpoint raw data
         """
 
         :param driver_obj:
@@ -154,14 +154,22 @@ class QDXLinkedInSpyder:
                 driver_obj.get(link)
                 profile_name = str(re.findall(r'in/(.+)', link)[0])
             if content_retrieval == 'contact':
-                link = link + self.contact_info_url_extension
+                link = link + self.contact_info_url_extension # TODO: add class object instead of 'es'
+                link = link.replace('es.', '')
+                driver_obj.get(link)
                 profile_name = str(re.findall(r'in/(.+)/detail', link)[0] + '_contact_info')
+                # TODO: once the list has N elements (as a paremeter), 1st save on disk, 2nd list = []
 
             data = driver_obj.page_source # TODO: add bs4, scrapy, regex extraction on <driver.page_source>
             profile_raw_data.append(link)
             if save_data:
-                with open(directory + '\\' + profile_name + '.txt', 'w') as fd:
-                    fd.write(data)
+                try:
+                    with open(directory + '\\' + profile_name + '.txt', 'w') as fd:
+                        fd.write(data)
+
+                except UnicodeEncodeError:
+                    with open(directory + '\\' + profile_name + '.txt', 'w', encoding='utf-8') as fd:
+                        fd.write(data)
 
         return error, profile_raw_data
 
