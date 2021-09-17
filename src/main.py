@@ -4,15 +4,24 @@ import sys
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
 
-from connection import QDXLinkedInSpyder
+from prepare import get_investor_datapoints
+from pprint import pprint
 
-#################################### START TEST CODE ##############################################################
-qlink = QDXLinkedInSpyder()
-contact_links = qlink.get_company_employees('a&g banca privada')
-error, driver = qlink.execute_auto_logging()
-# error, profile_data = qlink.get_raw_data(driver, contact_links, filepath='G:\\_NeverBackUp\\AURIGA\\DATA\\LINKEDIN')
-error, profile_data_contact_info = qlink.get_raw_data(driver,
-                                                      contact_links,
-                                                      filepath='G:\\_NeverBackUp\\AURIGA\\DATA\\LINKEDIN',
-                                                      content_retrieval='contact')
-#################################### END TEST CODE ##############################################################
+## environment variables
+__INVESTORS__ = ['a&g banca privada']
+__PRINT_ON_CONSOLE__ = True
+
+if __name__ == '__main__':
+
+    ## make pipeline
+    investors_datapoints = get_investor_datapoints(__INVESTORS__)
+    if __PRINT_ON_CONSOLE__:
+        print('######################################################################################################')
+        print('####################### INVESTOR DATAPOINTS ##########################################################')
+        print('######################################################################################################')
+        for investor in __INVESTORS__:
+            for key in list(investors_datapoints[investor].keys())[1:]:
+                print(f'\n\n{key}: {investors_datapoints[investor][key]}')
+
+        print()
+        print()
