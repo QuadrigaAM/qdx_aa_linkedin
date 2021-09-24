@@ -38,6 +38,8 @@ BROWSER = config['configuration_parameters']['browser']
 DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
 USERNAME = eval(config['configuration_parameters']['username'])
 PASSWORD = eval(config['configuration_parameters']['password'])
+USERNAME = "parrilla_diego@yahoo.com"
+PASSWORD = "DavidSerero1"
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 
 
@@ -91,21 +93,29 @@ class QDXLinkedInSpyder:
     def get_company_linkedin_link(self, company_name: str): # TODO: ADD Google anti-blocker's policy parameters
         url_to_search = f"https://www.linkedin.com/search/results/companies/?keywords={company_name.replace('&', '%26').replace(' ', '%20')}&origin=SWITCH_SEARCH_VERTICAL&sid=S9U"
         self.web_driver.get(url_to_search)
-        return self.web_driver.find_element_by_xpath('//*[@id="main"]/div/div/div[2]/ul/li[1]/div/div/div[2]/div[1]/div[1]/div/span/span/a').get_attribute("href")
+        try :
+            return self.web_driver.find_element_by_xpath('//*[@id="main"]/div/div/div[2]/ul/li[1]/div/div/div[2]/div[1]/div[1]/div/span/span/a').get_attribute("href")
+        except:
+            return self.web_driver.find_element_by_xpath('//*[@id="main"]/div/div/div[3]/ul/li/div/div/div[2]/div[1]/div[1]/div/span/span/a').get_attribute("href")
 
-
-    def get_company_link(self, company_name: str):
+    def get_company_link(self, company_name: str): #TODO broken but maybe useless too
         linkedin_url = self.get_company_linkedin_link(company_name = company_name)
         self.web_driver.get(linkedin_url)
+
         try:
             url = self.web_driver.find_element_by_xpath(f'//*[@id="ember57"]').get_attribute("href")
+            print("url:", url)
             return url
         except:
-            extractor = URLExtract()
-            urls = extractor.find_urls(self.web_driver.page_source)
-            urls = ([s for s in urls if f"{company_name}." in s])
-            frequent_urls = [urlparse(url).netloc for url in urls]
-            return Counter(frequent_urls).most_common(1)[0][0]
+            pass
+        """
+        extractor = URLExtract()
+        urls = extractor.find_urls(self.web_driver.page_source)
+        urls = ([s for s in urls if f"{company_name}." in s])
+        frequent_urls = [urlparse(url).netloc for url in urls]
+        print(frequent_urls)
+        return Counter(frequent_urls).most_common(1)[0][0]
+        """
 
     def execute_auto_logging(self, wait: bool = True, implicit_wait_time: int = 10, delete_all_cookies: bool = False,
                              activate_recall_me: bool = False): # TODO: adequate policy to avoid anti-spyders
@@ -248,22 +258,30 @@ class QDXLinkedInSpyder:
                 ember_value -= 1
                 continue
 
-    def get_linkedin_profiles_search_url(self, company_name: str, role: str, page: int):
+    def get_linkedin_profiles_search_url(self, company_name: str = None, role: str = None, page: int = 1):
+        if company_name is not None:
+            print("company is not none")
+            company_linkedin_number = self.get_company_linkedin_number(company_name)
+            compa_arg = f"""currentCompany=%5B%22{company_linkedin_number}%22%5D&"""
+        else:
+            compa_arg = ""
+        search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}geoUrn=%5B"105646813"%5D&keywords={role.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
+        return search_url
+
+    def get_company_linkedin_number(self, company_name: str):
         company_linkedin_url = self.get_company_linkedin_link(company_name=company_name)
         self.web_driver.get(company_linkedin_url)
-        time.sleep(3)
+        time.sleep(1)
         attempts = 0
         while attempts < 5:
             try:
                 href_string_with_info = self.web_driver.find_element_by_xpath(f'//*[@id="ember{47+attempts}"]').get_attribute("href")
-                print(href_string_with_info)
                 pattern = "%22(.*?)%22"
                 company_linkedin_number = re.search(pattern, href_string_with_info).group(1)
                 break
             except:
                 attempts += 1
-        search_url = f"https://www.linkedin.com/search/results/people/?currentCompany=%5B%22{company_linkedin_number}%22%5D&keywords={role.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"
-        return search_url
+        return company_linkedin_number
 
     def get_contact_info(self):
         pass

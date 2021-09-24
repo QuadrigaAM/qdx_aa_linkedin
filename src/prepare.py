@@ -5,6 +5,9 @@ import pandas as pd
 from nameparser import HumanName
 from validate_email import validate_email
 import unicodedata
+import itertools
+from tqdm import tqdm
+import requests
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
@@ -13,6 +16,22 @@ from connection import QDXLinkedInSpyder
 
 qlink = QDXLinkedInSpyder()
 error, driver = qlink.execute_auto_logging()
+
+
+def check_email(email_address):
+    api_key = "978866a4-48ec-4233-84a2-5d332c32af15"
+    response = requests.get(
+        "https://isitarealemail.com/api/email/validate",
+        params = {'email': email_address},
+        headers = {'Authorization': "Bearer " + api_key })
+
+    status = response.json()['status']
+    if status == "valid":
+        return True
+    elif status == "invalid":
+        return False
+    else:
+        return True
 
 
 def get_investor_datapoints(investors: list):
@@ -28,46 +47,65 @@ def get_investor_datapoints(investors: list):
 def first_and_last_names_combinations(name_str):
     possible_emails = []
     words = [x for x in name_str.split(" ") if x[0]!=x[0].lower()]
-    my_permutations = list(permutations(words, 2))
+    my_permutations = list(itertools.permutations(words, 2))
+    """
+    print(my_permutations)
     for i in range(len(my_permutations)):
             possible_email = f'{my_permutations[i][0]}.{my_permutations[i][1]}'
             possible_emails.append(possible_email)
-    for possible_email in possible_emails:
-        if "-" in possible_email:
-            possible_emails.append(possible_email.replace("-",""))
-    return [possible_email.split(".") for possible_email in possible_emails]
+    """
+    for possible_email in my_permutations:
+        if "-" in possible_email[0]:
+            my_permutations.append(tuple([possible_email[0].replace("-",""), possible_email[1]]))
+        if "-" in possible_email[1]:
+            my_permutations.append(tuple([possible_email[0], possible_email[1].replace("-","")]))
+    return my_permutations
 
-def email_format(company_website, first_name, last_name):
+def email_format(company_linkedin_link, first_name, last_name):
     """
     returns
     """
-    if company_website == "ayg.es":
+    if company_linkedin_link == "https://www.linkedin.com/company/caixabank/":
+        email_domains = ["caixabank.es"]
+        format_name = [f"{first_name}.{last_name}"]
+    if company_linkedin_link == "https://www.linkedin.com/company/a&g-banca-privada/":
         email_domains = ["crc.ayg.es", "ayg.es"]
         format_name = [f"{first_name}.{last_name}"]
-    if company_website == "citi.com":
+    if company_linkedin_link == "https://www.linkedin.com/company/citi/":
         email_domains = ["citi.com", "citigroup.com"]
         format_name = [f"{first_name}.{last_name}"]
-    if company_website == "bbva.com":
+    if company_linkedin_link == "https://www.linkedin.com/company/bbva/":
         email_domains = ["bbva.com"]
         format_name = [f"{first_name}.{last_name}"]
-    if company_website == "bankinter.es":
+    if company_linkedin_link == "https://www.linkedin.com/company/bankinter/":
         email_domains = ["bankinter.es"]
         format_name = [f"{first_name[:2]}{last_name}"]
-    if company_website == "alantra.com":
+    if company_linkedin_link == "https://www.linkedin.com/company/alantra/":
         email_domains = ["alantra.com"]
         format_name = [f"{first_name}.{last_name}"]
-    if company_website == "santander.com":
-        email_domains = ["santander.com", "santanderrio.com.ar"]
+    if company_linkedin_link == "https://www.linkedin.com/company/banco-santander/":
+        email_domains = ["santander.com", "santanderrio.com.ar", "pb-santander.com"]
+        format_name = [f"{first_name[0]}.{last_name}", f"{first_name[:2]}.{last_name}"]
+    if company_linkedin_link == "https://www.linkedin.com/company/banco-santander/":
+        email_domains = ["santander.com", "santanderrio.com.ar", "pb-santander.com"]
         format_name = [f"{first_name[0]}.{last_name}", f"{first_name[:2]}.{last_name}"]
     possible_emails = ["@".join(possible_email) for possible_email in list(itertools.product(format_name, email_domains))]
-    emails = [email for email in possible_emails if validate_email(remove_accents_lower(email), verify=True)]
+    emails = []
+    for email in (possible_emails):
+        if check_email(remove_accents_lower(email)):
+            emails.append(email)
     return emails
 
-def find_email_master(company_website, name_str):
+def find_email_master(company_linkedin_link, name_str):
     emails = []
-    for first_name, last_name in first_and_last_names_combinations(name_str):
-        emails = emails + email_format("ayg.es", first_name, last_name)
-    return emails
+    print(name_str)
+    if name_str == "Name Error":
+        print(emails)
+        return emails
+    else:
+        for first_name, last_name in tqdm(first_and_last_names_combinations(name_str)):
+            emails = emails + email_format(company_linkedin_link, first_name, last_name)
+        return emails
 
 def first_name(name):
     name = HumanName(name)
@@ -82,25 +120,35 @@ def remove_accents_lower(input_str):
     only_ascii = nfkd_form.encode('ASCII', 'ignore')
     return only_ascii.lower().decode("utf-8")
 
-def find_useful_info_from_people_search(company_name: str, role: str, page: int): #TODO : set_location_to_madrid
+def find_useful_info_from_people_search(company_name: str, role: str, page: int, premium_plan = True, search_email = True): #TODO : set_location_to_madrid
     data = []
+    searched_role = role
     driver.get(qlink.get_linkedin_profiles_search_url(company_name = company_name, role = role, page = page))
     soup = BeautifulSoup(driver.page_source, "html.parser")
+    if premium_plan:
+        add = 2
+    else:
+        add = 0
     for i in range(10, 20):
-        place = (json.loads((soup.find_all("code")[14].contents[0])[3:])["included"][i])["secondarySubtitle"]["text"]
+        place = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["secondarySubtitle"]["text"]
         try:
-            name = (json.loads((soup.find_all("code")[14].contents[0])[3:])["included"][i])["image"][
+            name = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["image"][
                 "accessibilityText"]
         except:
             name = "Name Error"
-        role = (json.loads((soup.find_all("code")[14].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
-        link = (json.loads((soup.find_all("code")[14].contents[0])[3:])["included"][i])["navigationUrl"]
+        role = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
+        link = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["navigationUrl"]
         print(i, name, role, place, link)
         data.append([name, role, place, link])
     linkedin_data = pd.DataFrame(data, columns = ["Name", "Role", "Place", "LinkedIn Profile"])
     linkedin_data["First Name"] = linkedin_data["Name"].apply(lambda x: first_name(x))
     linkedin_data["Last Name"] = linkedin_data["Name"].apply(lambda x: last_name(x))
-    #linkedin_data["Email"] = linkedin_data["Name"].apply(lambda x: find_email(x))
+    linkedin_data["Company Name"] = company_name
+    print(f"{len(linkedin_data)} people found, searching for their emails")
+    if search_email:
+        tqdm.pandas()
+        linkedin_data["Email"] = linkedin_data["Name"].progress_apply(lambda x: find_email_master(company_linkedin_link, x))
+    linkedin_data.to_csv(f"{company_name}_{searched_role}_{page}.csv")
     return linkedin_data
 
 if 1 == 0:
@@ -162,3 +210,9 @@ if 1 == 0:
     investor_datapoints = {}
     for investor in INVESTORS:
         investor_datapoints = qlink.extract_datapoints(company_name)
+
+"""
+for i in range(8,11):
+    print(f"page : {i}")
+    find_useful_info_from_people_search(company_name = "BBVA", role = "asesor", page = i, premium_plan = False)
+"""
