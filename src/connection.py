@@ -3,6 +3,8 @@ import sys
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
+sys.path.insert(0, os.getcwd() + '//' + 'libs')
+sys.path.insert(0, os.getcwd() + '//' + 'libs/qdx_aa_linkedin')
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -28,7 +30,7 @@ logging.getLogger().addHandler(logging.StreamHandler()) # to display message in 
 
 ## read configuration files
 config = ConfigParser()
-config.read('src/config.ini')
+config.read('libs/qdx_aa_linkedin/src/config.ini')
 
 ## environment variables
 BROWSER = config['configuration_parameters']['browser']
@@ -42,6 +44,24 @@ class QDXLinkedInSpyder:
 
     __COUNTRIES__ = {
         'Spain': 'es' # TODO: fill-in the dictionary
+    }
+    __ZONE__ = {
+        'Region': {
+            'EMEA': {
+                'SubRegion': {
+                    'Europe': {
+                        'Country': {
+                            'Spain': {
+                                'City': ['Madrid', 'Barcelona'],
+                            },
+                            'France': {
+                                'City': ['Paris']
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     def __init__(self, browser: str = BROWSER, driver_filepath: str = DRIVER_FILEPATH, username: str = USERNAME,
