@@ -12,7 +12,8 @@ import requests
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
 
-from connection import QDXLinkedInSpyder
+# from connection import QDXLinkedInSpyder
+from libs.qdx_aa_linkedin.src.connection import QDXLinkedInSpyder
 
 qlink = QDXLinkedInSpyder()
 error, driver = qlink.execute_auto_logging()
