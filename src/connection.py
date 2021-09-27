@@ -16,6 +16,9 @@ import logging
 import time
 import re
 import os
+from urllib.parse import urlparse
+from urlextract import URLExtract
+from collections import Counter
 
 ## logging configuration
 logger = logging.getLogger('logs\\log')
@@ -35,6 +38,8 @@ BROWSER = config['configuration_parameters']['browser']
 DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
 USERNAME = eval(config['configuration_parameters']['username'])
 PASSWORD = eval(config['configuration_parameters']['password'])
+USERNAME = "parrilla_diego@yahoo.com"
+PASSWORD = "DavidSerero1"
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 
 
@@ -85,32 +90,32 @@ class QDXLinkedInSpyder:
 
         return employee_urls
 
-    def get_company_link(self, company_name: str, retrievals: int = 10, elapse: int = 11, limit: int = 50000,
-                         search_method='wise'): # TODO: ADD Google anti-blocker's policy parameters
-        """
-        This method
+    def get_company_linkedin_link(self, company_name: str): # TODO: ADD Google anti-blocker's policy parameters
+        url_to_search = f"https://www.linkedin.com/search/results/companies/?keywords={company_name.replace('&', '%26').replace(' ', '%20')}&origin=SWITCH_SEARCH_VERTICAL&sid=S9U"
+        self.web_driver.get(url_to_search)
+        try :
+            return self.web_driver.find_element_by_xpath('//*[@id="main"]/div/div/div[2]/ul/li[1]/div/div/div[2]/div[1]/div[1]/div/span/span/a').get_attribute("href")
+        except:
+            return self.web_driver.find_element_by_xpath('//*[@id="main"]/div/div/div[3]/ul/li/div/div/div[2]/div[1]/div[1]/div/span/span/a').get_attribute("href")
 
-        :param search_method: "wise" for the company link, "all" for all possible combinations
-        :param limit:
-        :param company_name:
-        :param retrievals:
-        :param elapse:
-        :return:
+    def get_company_link(self, company_name: str): #TODO broken but maybe useless too
+        linkedin_url = self.get_company_linkedin_link(company_name = company_name)
+        self.web_driver.get(linkedin_url)
+
+        try:
+            url = self.web_driver.find_element_by_xpath(f'//*[@id="ember57"]').get_attribute("href")
+            print("url:", url)
+            return url
+        except:
+            pass
         """
-        query, company_urls = self.standard_main_url + ' AND ' + company_name, []
-        start_time = time.time()
-        assert elapse > 10
-        assert retrievals / elapse < 10
-        for it, company_link in enumerate(search(query, tld="co.in", num=retrievals, stop=retrievals, pause=elapse)):
-            if it == limit - 1 and time.time() - start_time == 86400 - 1:
-                break
-            if time.time() - start_time >= 100 - 2 and it == 100 - 1:
-                time.sleep(5)
-            company_urls.append(company_link)
-        if search_method == 'all':
-            return company_urls
-        if search_method == 'wise':
-            return [x for x in company_urls if re.findall(r'https://\w+\.linkedin.com/company/.+', x)][0]
+        extractor = URLExtract()
+        urls = extractor.find_urls(self.web_driver.page_source)
+        urls = ([s for s in urls if f"{company_name}." in s])
+        frequent_urls = [urlparse(url).netloc for url in urls]
+        print(frequent_urls)
+        return Counter(frequent_urls).most_common(1)[0][0]
+        """
 
     def execute_auto_logging(self, wait: bool = True, implicit_wait_time: int = 10, delete_all_cookies: bool = False,
                              activate_recall_me: bool = False): # TODO: adequate policy to avoid anti-spyders
@@ -216,7 +221,7 @@ class QDXLinkedInSpyder:
         :rtype: dict
         """
         ## get investor (company) url (endpoint) and get HTML code
-        url = self.get_company_link(company_name, search_method='wise')
+        url = self.get_company_linkedin_link(company_name, search_method='wise')
         assert type(url) == str
         endpoint = url + '/about/'
         self.web_driver.get(url=endpoint)
@@ -253,5 +258,32 @@ class QDXLinkedInSpyder:
                 ember_value -= 1
                 continue
 
+    def get_linkedin_profiles_search_url(self, company_name: str = None, role: str = None, page: int = 1):
+        if company_name is not None:
+            print("company is not none")
+            company_linkedin_number = self.get_company_linkedin_number(company_name)
+            compa_arg = f"""currentCompany=%5B%22{company_linkedin_number}%22%5D&"""
+        else:
+            compa_arg = ""
+        search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}geoUrn=%5B"105646813"%5D&keywords={role.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
+        return search_url
+
+    def get_company_linkedin_number(self, company_name: str):
+        company_linkedin_url = self.get_company_linkedin_link(company_name=company_name)
+        self.web_driver.get(company_linkedin_url)
+        time.sleep(1)
+        attempts = 0
+        while attempts < 5:
+            try:
+                href_string_with_info = self.web_driver.find_element_by_xpath(f'//*[@id="ember{47+attempts}"]').get_attribute("href")
+                pattern = "%22(.*?)%22"
+                company_linkedin_number = re.search(pattern, href_string_with_info).group(1)
+                break
+            except:
+                attempts += 1
+        return company_linkedin_number
+
+    def get_contact_info(self):
+        pass
 
 
