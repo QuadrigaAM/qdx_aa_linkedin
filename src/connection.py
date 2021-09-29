@@ -38,8 +38,6 @@ BROWSER = config['configuration_parameters']['browser']
 DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
 USERNAME = eval(config['configuration_parameters']['username'])
 PASSWORD = eval(config['configuration_parameters']['password'])
-USERNAME = "parrilla_diego@yahoo.com"
-PASSWORD = "DavidSerero1"
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 
 
@@ -258,14 +256,22 @@ class QDXLinkedInSpyder:
                 ember_value -= 1
                 continue
 
-    def get_linkedin_profiles_search_url(self, company_name: str = None, role: str = None, page: int = 1):
+    def get_linkedin_profiles_search_url(self, company_name: str = None, search_keywords: str = "", country: str = None, page: int = 1):
         if company_name is not None:
             print("company is not none")
             company_linkedin_number = self.get_company_linkedin_number(company_name)
             compa_arg = f"""currentCompany=%5B%22{company_linkedin_number}%22%5D&"""
         else:
             compa_arg = ""
-        search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}geoUrn=%5B"105646813"%5D&keywords={role.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
+
+        if country is not None:
+            if country == "Spain":
+                country_arg = """geoUrn=%5B"105646813"%5D&"""
+            if country == "France":
+                country_arg = """geoUrn=%5B"105015875"%5D&"""
+        else:
+            country_arg = ""
+        search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}{country_arg}keywords={search_keywords.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
         return search_url
 
     def get_company_linkedin_number(self, company_name: str):
@@ -283,7 +289,7 @@ class QDXLinkedInSpyder:
                 attempts += 1
         return company_linkedin_number
 
-    def get_contact_info(self):
-        pass
+
+
 
 
