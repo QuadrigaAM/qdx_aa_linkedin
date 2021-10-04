@@ -7,6 +7,11 @@ from validate_email import validate_email
 import unicodedata
 import itertools
 from tqdm import tqdm
+import difflib
+from collections import Counter
+from bs4 import BeautifulSoup
+import re
+
 import requests
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
@@ -32,8 +37,7 @@ def check_email(email_address):
     elif status == "invalid":
         return False
     else:
-        return True
-
+        return False
 
 def get_investor_datapoints(investors: list):
     """
@@ -121,10 +125,10 @@ def remove_accents_lower(input_str):
     only_ascii = nfkd_form.encode('ASCII', 'ignore')
     return only_ascii.lower().decode("utf-8")
 
-def find_useful_info_from_people_search(company_name: str, role: str, page: int, premium_plan = True, search_email = True): #TODO : set_location_to_madrid
+def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str, premium_plan = True, search_email = False): #TODO : set_location_to_madrid
     data = []
-    searched_role = role
-    driver.get(qlink.get_linkedin_profiles_search_url(company_name = company_name, role = role, page = page))
+    searched_role = search_keywords
+    driver.get(qlink.get_linkedin_profiles_search_url(company_name = company_name, search_keywords = search_keywords, country = country, page = page))
     soup = BeautifulSoup(driver.page_source, "html.parser")
     if premium_plan:
         add = 2
@@ -133,8 +137,7 @@ def find_useful_info_from_people_search(company_name: str, role: str, page: int,
     for i in range(10, 20):
         place = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["secondarySubtitle"]["text"]
         try:
-            name = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["image"][
-                "accessibilityText"]
+            name = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["image"]["accessibilityText"]
         except:
             name = "Name Error"
         role = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
@@ -151,6 +154,98 @@ def find_useful_info_from_people_search(company_name: str, role: str, page: int,
         linkedin_data["Email"] = linkedin_data["Name"].progress_apply(lambda x: find_email_master(company_linkedin_link, x))
     linkedin_data.to_csv(f"{company_name}_{searched_role}_{page}.csv")
     return linkedin_data
+
+def remove_all_extra_spaces(string):
+    return " ".join(string.split())
+
+def get_profile_infos(url):
+    driver.get(url)
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    mini_url = re.search('in/(.*)\?', url).group(1)
+    file = open(f"sample{mini_url}.html", "w", encoding='utf-8')
+    file.write(driver.page_source)
+    file.close()
+    first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
+    last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
+
+    l = []
+    for i, a in enumerate(soup.find_all("a")):
+        for s in a.text.split("\n"):
+            l.append(remove_all_extra_spaces(s))
+        if "company" in a.get('href'):
+            l.append(a.get('href'))
+    l = [s for s in l if s != '']
+    print(l)
+    role = l[l.index("Company Name") - 1]
+    current_company = l[l.index("Company Name") + 1]
+    try:
+        location = l[l.index("Location") + 1]
+    except:
+        location = ""
+    try:
+        current_company_linkedin_url = "https://www.linkedin.com/" + [s for s in l if "/company/" in s][0]
+    except:
+        current_company_linkedin_url = ""
+    try:
+        last_company = l[[i for i, x in enumerate(l) if x == "Company Name"][1] + 1]
+    except:
+        last_company = "None"
+    try:
+        end_of_studies = l[[i for i, x in enumerate(l) if x == "Dates attended or expected graduation"][0] + 1]
+        end_of_studies = re.findall(r'\d+', end_of_studies)[-1]
+    except:
+        end_of_studies = ""
+
+    df = pd.DataFrame(
+        [first, last, url, role, current_company, location, current_company_linkedin_url, last_company, end_of_studies],
+        index=["first", "last", "profile_linkedin_url", "role", "current_company", "location", "current_company_linkedin_url", "last_company",
+               "end_of_studies"]).T
+    return df
+
+def get_contact_info(search_keywords, premium_plan = True):
+    """
+    Aim : find information about someone using linkedin \n
+    Step 1 : linkedin search with the keywords (usually full name and his firm) \n
+    Step 2 : grab the linkedin url of the correct person (most probable the first result of the search) \n
+    Step 3 : go inside the linkedin profile url \n
+    Step 4 : fetch information (First name, last name, current firm name as displayed on linkedin,
+    current firm linkedin url, start date of current role, start date of first job (can help estimate the age),
+    previous firm name, role (see NB) \n
+    Step 5 : organise this data, put it in a pandas df/series and return it \n
+    NB: role fetching is difficult, easier to fetch it by scapping the search page, so we have have access to it around step 2 \n
+    :param search_keywords:
+    :return:
+    """
+    #Step 1
+    driver.get(qlink.get_linkedin_profiles_search_url(search_keywords=search_keywords))
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    if premium_plan:
+        add = 2
+    else:
+        add = 0
+    attempts = 0
+    data = []
+    while attempts < 11:
+        try:
+            role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"]["text"]
+            linkedin_profile_url = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
+            try:
+                name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["image"]["accessibilityText"]
+            except:
+                name = "Name Error"
+            data.append([role, linkedin_profile_url, name])
+        except:
+            pass
+        attempts += 1
+    data = pd.DataFrame(data, columns = ["role", "url", "name"])
+    data["Full info"] = data["role"] + data["name"]
+    #print(data)
+    #print(difflib.get_close_matches(data["Full info"], search_keywords, cutoff=0.))
+    best_match = data[data["Full info"]==difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
+    #print(best_match)
+    #return data["Full info"]
+    return get_profile_infos(best_match["url"].values[0])
+    #return best_match["url"], best_match["role"]
 
 if 1 == 0:
     #################################### START TEST CODE ##############################################################
