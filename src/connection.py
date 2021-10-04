@@ -16,9 +16,6 @@ import logging
 import time
 import re
 import os
-from urllib.parse import urlparse
-from urlextract import URLExtract
-from collections import Counter
 
 ## logging configuration
 logger = logging.getLogger('logs\\log')
@@ -36,8 +33,10 @@ config.read('src/config.ini')
 ## environment variables
 BROWSER = config['configuration_parameters']['browser']
 DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
-USERNAME = eval(config['configuration_parameters']['username'])
-PASSWORD = eval(config['configuration_parameters']['password'])
+#USERNAME = eval(config['configuration_parameters']['username'])
+#PASSWORD = eval(config['configuration_parameters']['password'])
+USERNAME = "davidserero97@gmail.com"
+PASSWORD = "smoldersbolds"
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 
 
@@ -277,7 +276,6 @@ class QDXLinkedInSpyder:
     def get_company_linkedin_number(self, company_name: str):
         company_linkedin_url = self.get_company_linkedin_link(company_name=company_name)
         self.web_driver.get(company_linkedin_url)
-        time.sleep(1)
         attempts = 0
         while attempts < 5:
             try:
@@ -288,8 +286,3 @@ class QDXLinkedInSpyder:
             except:
                 attempts += 1
         return company_linkedin_number
-
-
-
-
-

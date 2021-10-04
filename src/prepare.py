@@ -9,6 +9,8 @@ import itertools
 from tqdm import tqdm
 import difflib
 from collections import Counter
+from bs4 import BeautifulSoup
+import re
 
 import requests
 # sys.path.append(os.path.join(sys.path[0], 'src'))
@@ -122,9 +124,9 @@ def remove_accents_lower(input_str):
     only_ascii = nfkd_form.encode('ASCII', 'ignore')
     return only_ascii.lower().decode("utf-8")
 
-def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str, premium_plan = True, search_email = True): #TODO : set_location_to_madrid
+def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str, premium_plan = True, search_email = False): #TODO : set_location_to_madrid
     data = []
-    searched_role = role
+    searched_role = search_keywords
     driver.get(qlink.get_linkedin_profiles_search_url(company_name = company_name, search_keywords = search_keywords, country = country, page = page))
     soup = BeautifulSoup(driver.page_source, "html.parser")
     if premium_plan:
@@ -163,7 +165,6 @@ def get_profile_infos(url):
     file.write(driver.page_source)
     file.close()
     first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
-    print(first)
     last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
 
     l = []
@@ -173,18 +174,30 @@ def get_profile_infos(url):
         if "company" in a.get('href'):
             l.append(a.get('href'))
     l = [s for s in l if s != '']
-
+    print(l)
     role = l[l.index("Company Name") - 1]
     current_company = l[l.index("Company Name") + 1]
-    location = l[l.index("Location") + 1]
-    current_company_linkedin_url = l[[i for i, x in enumerate(l) if x == "Company Name"][1] - 2]
-    last_company = l[[i for i, x in enumerate(l) if x == "Company Name"][1] + 1]
-    end_of_studies = l[[i for i, x in enumerate(l) if x == "Dates attended or expected graduation"][0] + 1]
-    end_of_studies = re.findall(r'\d+', end_of_studies)[-1]
+    try:
+        location = l[l.index("Location") + 1]
+    except:
+        location = ""
+    try:
+        current_company_linkedin_url = "https://www.linkedin.com/" + [s for s in l if "/company/" in s][0]
+    except:
+        current_company_linkedin_url = ""
+    try:
+        last_company = l[[i for i, x in enumerate(l) if x == "Company Name"][1] + 1]
+    except:
+        last_company = "None"
+    try:
+        end_of_studies = l[[i for i, x in enumerate(l) if x == "Dates attended or expected graduation"][0] + 1]
+        end_of_studies = re.findall(r'\d+', end_of_studies)[-1]
+    except:
+        end_of_studies = ""
 
     df = pd.DataFrame(
-        [first, last, role, current_company, location, current_company_linkedin_url, last_company, end_of_studies],
-        index=["first", "last", "role", "current_company", "location", "current_company_linkedin_url", "last_company",
+        [first, last, url, role, current_company, location, current_company_linkedin_url, last_company, end_of_studies],
+        index=["first", "last", "profile_linkedin_url", "role", "current_company", "location", "current_company_linkedin_url", "last_company",
                "end_of_studies"]).T
     return df
 
@@ -212,7 +225,6 @@ def get_contact_info(search_keywords, premium_plan = True):
     attempts = 0
     data = []
     while attempts < 11:
-        print(attempts)
         try:
             role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"]["text"]
             linkedin_profile_url = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
@@ -233,6 +245,7 @@ def get_contact_info(search_keywords, premium_plan = True):
     #return data["Full info"]
     return get_profile_infos(best_match["url"].values[0])
     #return best_match["url"], best_match["role"]
+
 if 1 == 0:
     #################################### START TEST CODE ##############################################################
     qlink = QDXLinkedInSpyder()
