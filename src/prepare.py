@@ -9,10 +9,12 @@ import itertools
 from tqdm import tqdm
 import difflib
 from collections import Counter
+from flashgeotext.geotext import GeoText
 from bs4 import BeautifulSoup
 import re
 
 import requests
+
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
@@ -27,8 +29,8 @@ def check_email(email_address):
     api_key = "978866a4-48ec-4233-84a2-5d332c32af15"
     response = requests.get(
         "https://isitarealemail.com/api/email/validate",
-        params = {'email': email_address},
-        headers = {'Authorization': "Bearer " + api_key })
+        params={'email': email_address},
+        headers={'Authorization': "Bearer " + api_key})
 
     status = response.json()['status']
     if status == "valid":
@@ -37,6 +39,7 @@ def check_email(email_address):
         return False
     else:
         return False
+
 
 def get_investor_datapoints(investors: list):
     """
@@ -48,9 +51,10 @@ def get_investor_datapoints(investors: list):
         investor_datapoints[investor] = qlink.extract_datapoints(company_name=investor)
     return investor_datapoints
 
+
 def first_and_last_names_combinations(name_str):
     possible_emails = []
-    words = [x for x in name_str.split(" ") if x[0]!=x[0].lower()]
+    words = [x for x in name_str.split(" ") if x[0] != x[0].lower()]
     my_permutations = list(itertools.permutations(words, 2))
     """
     print(my_permutations)
@@ -60,10 +64,11 @@ def first_and_last_names_combinations(name_str):
     """
     for possible_email in my_permutations:
         if "-" in possible_email[0]:
-            my_permutations.append(tuple([possible_email[0].replace("-",""), possible_email[1]]))
+            my_permutations.append(tuple([possible_email[0].replace("-", ""), possible_email[1]]))
         if "-" in possible_email[1]:
-            my_permutations.append(tuple([possible_email[0], possible_email[1].replace("-","")]))
+            my_permutations.append(tuple([possible_email[0], possible_email[1].replace("-", "")]))
     return my_permutations
+
 
 def email_format(company_linkedin_link, first_name, last_name):
     """
@@ -93,12 +98,14 @@ def email_format(company_linkedin_link, first_name, last_name):
     if company_linkedin_link == "https://www.linkedin.com/company/banco-santander/":
         email_domains = ["santander.com", "santanderrio.com.ar", "pb-santander.com"]
         format_name = [f"{first_name[0]}.{last_name}", f"{first_name[:2]}.{last_name}"]
-    possible_emails = ["@".join(possible_email) for possible_email in list(itertools.product(format_name, email_domains))]
+    possible_emails = ["@".join(possible_email) for possible_email in
+                       list(itertools.product(format_name, email_domains))]
     emails = []
     for email in (possible_emails):
         if check_email(remove_accents_lower(email)):
             emails.append(email)
     return emails
+
 
 def find_email_master(company_linkedin_link, name_str):
     emails = []
@@ -111,51 +118,62 @@ def find_email_master(company_linkedin_link, name_str):
             emails = emails + email_format(company_linkedin_link, first_name, last_name)
         return emails
 
+
 def first_name(name):
     name = HumanName(name)
     return name.first
 
+
 def last_name(name):
     name = HumanName(name)
     return name.last
+
 
 def remove_accents_lower(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     only_ascii = nfkd_form.encode('ASCII', 'ignore')
     return only_ascii.lower().decode("utf-8")
 
-def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str, premium_plan = True, search_email = False): #TODO : set_location_to_madrid
+
+def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str,
+                                        premium_plan=True, search_email=False):  # TODO : set_location_to_madrid
     data = []
     searched_role = search_keywords
-    driver.get(qlink.get_linkedin_profiles_search_url(company_name = company_name, search_keywords = search_keywords, country = country, page = page))
+    driver.get(qlink.get_linkedin_profiles_search_url(company_name=company_name, search_keywords=search_keywords,
+                                                      country=country, page=page))
     soup = BeautifulSoup(driver.page_source, "html.parser")
     if premium_plan:
         add = 2
     else:
         add = 0
     for i in range(10, 20):
-        place = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["secondarySubtitle"]["text"]
+        place = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["secondarySubtitle"][
+            "text"]
         try:
-            name = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["image"]["accessibilityText"]
+            name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["image"][
+                "accessibilityText"]
         except:
             name = "Name Error"
-        role = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
-        link = (json.loads((soup.find_all("code")[14+add].contents[0])[3:])["included"][i])["navigationUrl"]
+        role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
+        link = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["navigationUrl"]
         print(i, name, role, place, link)
         data.append([name, role, place, link])
-    linkedin_data = pd.DataFrame(data, columns = ["Name", "Role", "Place", "LinkedIn Profile"])
+    linkedin_data = pd.DataFrame(data, columns=["Name", "Role", "Place", "LinkedIn Profile"])
     linkedin_data["First Name"] = linkedin_data["Name"].apply(lambda x: first_name(x))
     linkedin_data["Last Name"] = linkedin_data["Name"].apply(lambda x: last_name(x))
     linkedin_data["Company Name"] = company_name
     print(f"{len(linkedin_data)} people found, searching for their emails")
     if search_email:
         tqdm.pandas()
-        linkedin_data["Email"] = linkedin_data["Name"].progress_apply(lambda x: find_email_master(company_linkedin_link, x))
+        linkedin_data["Email"] = linkedin_data["Name"].progress_apply(
+            lambda x: find_email_master(company_linkedin_link, x))
     linkedin_data.to_csv(f"{company_name}_{searched_role}_{page}.csv")
     return linkedin_data
 
+
 def remove_all_extra_spaces(string):
     return " ".join(string.split())
+
 
 def get_profile_infos(url):
     driver.get(url)
@@ -181,8 +199,14 @@ def get_profile_infos(url):
         location = l[l.index("Location") + 1]
     except:
         location = ""
+    location = location + " " + " ".join(re.findall(r'"defaultLocalizedName":"(.*?)"', soup.text))
+    geotext = GeoText()
+    city = list(geotext.extract(location)["cities"].keys())[0]
+    country = list(geotext.extract(location)["countries"].keys())[0]
     try:
-        current_company_linkedin_url = "https://www.linkedin.com/" + [s for s in l if "/company/" in s][0]
+        current_company_linkedin_url = [s for s in l if "/company/" in s][0]
+        if "linkedin.com" not in current_company_linkedin_url:
+            current_company_linkedin_url = "https://www.linkedin.com" + current_company_linkedin_url
     except:
         current_company_linkedin_url = ""
     try:
@@ -196,12 +220,14 @@ def get_profile_infos(url):
         end_of_studies = ""
 
     df = pd.DataFrame(
-        [first, last, url, role, current_company, location, current_company_linkedin_url, last_company, end_of_studies],
-        index=["first", "last", "profile_linkedin_url", "role", "current_company", "location", "current_company_linkedin_url", "last_company",
+        [first, last, url, role, current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
+        index=["first", "last", "profile_linkedin_url", "role", "current_company", "city", "country",
+               "current_company_linkedin_url", "last_company",
                "end_of_studies"]).T
     return df
 
-def get_contact_info(search_keywords, premium_plan = True):
+
+def get_contact_info(search_keywords, premium_plan=True):
     """
     Aim : find information about someone using linkedin \n
     Step 1 : linkedin search with the keywords (usually full name and his firm) \n
@@ -215,7 +241,7 @@ def get_contact_info(search_keywords, premium_plan = True):
     :param search_keywords:
     :return:
     """
-    #Step 1
+    # Step 1
     driver.get(qlink.get_linkedin_profiles_search_url(search_keywords=search_keywords))
     soup = BeautifulSoup(driver.page_source, "html.parser")
     if premium_plan:
@@ -226,31 +252,36 @@ def get_contact_info(search_keywords, premium_plan = True):
     data = []
     while attempts < 11:
         try:
-            role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"]["text"]
-            linkedin_profile_url = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
+            role = \
+            (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"][
+                "text"]
+            linkedin_profile_url = \
+            (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
             try:
-                name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["image"]["accessibilityText"]
+                name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["image"][
+                    "accessibilityText"]
             except:
                 name = "Name Error"
             data.append([role, linkedin_profile_url, name])
         except:
             pass
         attempts += 1
-    data = pd.DataFrame(data, columns = ["role", "url", "name"])
+    data = pd.DataFrame(data, columns=["role", "url", "name"])
     data["Full info"] = data["role"] + data["name"]
-    #print(data)
-    #print(difflib.get_close_matches(data["Full info"], search_keywords, cutoff=0.))
-    best_match = data[data["Full info"]==difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
-    #print(best_match)
-    #return data["Full info"]
+    # print(data)
+    # print(difflib.get_close_matches(data["Full info"], search_keywords, cutoff=0.))
+    best_match = data[data["Full info"] == difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
+    # print(best_match)
+    # return data["Full info"]
     return get_profile_infos(best_match["url"].values[0])
-    #return best_match["url"], best_match["role"]
+    # return best_match["url"], best_match["role"]
+
 
 if 1 == 0:
     #################################### START TEST CODE ##############################################################
     qlink = QDXLinkedInSpyder()
 
-    concepts = ['banquero privado', 'asesor patrimonial'] # TODO: fill a dict or list w/ all possible keywords
+    concepts = ['banquero privado', 'asesor patrimonial']  # TODO: fill a dict or list w/ all possible keywords
     institutions = ['a&g banca privada', 'ubs ...']
 
     contact_links = qlink.get_company_employees('a&g banca privada')
@@ -261,7 +292,6 @@ if 1 == 0:
                                                           filepath='G:\\_NeverBackUp\\AURIGA\\DATA\\LINKEDIN',
                                                           content_retrieval='contact')
     #################################### END TEST CODE ##############################################################
-
 
     #################################### START EXTRACT INVESTOR DATAPOINTS FROM LINKEDIN ############################
     from bs4 import BeautifulSoup
@@ -291,11 +321,11 @@ if 1 == 0:
 
     #################################### START EXTRACT INVESTOR LINKEDIN URL ######################################
     import re
+
     qlink = QDXLinkedInSpyder()
     error, driver = qlink.execute_auto_logging()
     company_links = qlink.get_company_linkedin_link('a&g banca privada')
     company_linkedin_link = [x for x in company_links if re.findall(r'https://\w+\.linkedin.com/company/.+', x)][0]
-
 
     ########## OFFICIAL CODE ###############
     qlink = QDXLinkedInSpyder()

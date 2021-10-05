@@ -18,9 +18,10 @@ import re
 import os
 
 ## logging configuration
-logger = logging.getLogger('logs\\log')
+dir_path =  os.path.dirname(os.path.realpath(__file__))
+logger = logging.getLogger(os.path.dirname(dir_path) + '\\logs\\log')
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler('logs\\log.log') # TODO: define multiple logs (one per pipeline)
+file_handler = logging.FileHandler(os.path.dirname(dir_path) + '\\logs\\log.log') # TODO: define multiple logs (one per pipeline)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname) - %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
@@ -28,7 +29,7 @@ logging.getLogger().addHandler(logging.StreamHandler()) # to display message in 
 
 ## read configuration files
 config = ConfigParser()
-config.read('src/config.ini')
+config.read(dir_path + '\\config.ini')
 
 ## environment variables
 BROWSER = config['configuration_parameters']['browser']
