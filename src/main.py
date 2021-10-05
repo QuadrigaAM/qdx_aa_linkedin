@@ -20,11 +20,11 @@ excel_path = "linkedin_salesforce_interface.xlsx"
 def sheet1():
     wb = xw.Book(excel_path)
     sht1 = wb.sheets[0]
-    to_search = [search for search in sht1.range((5, 4), (10, 4)).value if search is not None]
+    to_search = [" ".join(search) for search in sht1.range((7, 4), (10, 5)).value if search[0] is not None]
     data = []
     for search in to_search:
         data.append(get_contact_info(search))
-    sht1.range(4, 6).value = pd.concat(data)
+    sht1.range(6, 8).value = pd.concat(data)
 def sheet2():
     wb = xw.Book(excel_path)
     sht1 = wb.sheets[1]

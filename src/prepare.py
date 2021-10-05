@@ -268,14 +268,10 @@ def get_contact_info(search_keywords, premium_plan=True):
         attempts += 1
     data = pd.DataFrame(data, columns=["role", "url", "name"])
     data["Full info"] = data["role"] + data["name"]
-    # print(data)
-    # print(difflib.get_close_matches(data["Full info"], search_keywords, cutoff=0.))
+    #Step 2 : find the best match thanks to difflib.get_close_matches
     best_match = data[data["Full info"] == difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
-    # print(best_match)
-    # return data["Full info"]
+    #Step 3, 4 and 5
     return get_profile_infos(best_match["url"].values[0])
-    # return best_match["url"], best_match["role"]
-
 
 if 1 == 0:
     #################################### START TEST CODE ##############################################################
