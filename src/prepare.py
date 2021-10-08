@@ -189,6 +189,7 @@ def remove_all_extra_spaces(string):
 
 def get_profile_infos(url):
     driver.get(url)
+    time.sleep(1)
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
     last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
