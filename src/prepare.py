@@ -1,6 +1,8 @@
 import os
 import sys
 import json
+import time
+
 import pandas as pd
 from nameparser import HumanName
 from validate_email import validate_email
@@ -136,7 +138,7 @@ def remove_accents_lower(input_str):
 
 
 def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str,
-                                        premium_plan=True, search_email=False):  # TODO : set_location_to_madrid
+                                        premium_plan=True, search_email=False, detailed = True):  # TODO : set_location_to_madrid
     data = []
     searched_role = search_keywords
     driver.get(qlink.get_linkedin_profiles_search_url(company_name=company_name, search_keywords=search_keywords,
@@ -167,9 +169,18 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
         tqdm.pandas()
         linkedin_data["Email"] = linkedin_data["Name"].progress_apply(
             lambda x: find_email_master(company_linkedin_link, x))
-    linkedin_data.to_csv(f"{company_name}_{searched_role}_{page}.csv")
-    return linkedin_data
-
+    if detailed == False:
+        linkedin_data.to_csv(f"{company_name}_{searched_role}_{page}.csv")
+        return linkedin_data
+    if detailed == True:
+        data = []
+        for url in linkedin_data["LinkedIn Profile"]:
+            try:
+                data.append(get_profile_infos(url))
+            except:
+                pass
+        print(data)
+        return pd.concat(data)
 
 def remove_all_extra_spaces(string):
     return " ".join(string.split())
@@ -194,7 +205,13 @@ def get_profile_infos(url):
     l = [s for s in l if s != '']
     print(l)
     role = l[l.index("Company Name") - 1]
-    current_company = l[l.index("Company Name") + 1]
+    try:
+        current_company = l[l.index("Company Name") + 1]
+    except:
+        for i, a in enumerate(soup.find_all("a")):
+            for div in a.find_all("div"):
+                if div.get("aria-label") == "Current company":
+                    current_company = remove_all_extra_spaces(div.text.replace("\n", ""))
     try:
         location = l[l.index("Location") + 1]
     except:
@@ -221,9 +238,8 @@ def get_profile_infos(url):
 
     df = pd.DataFrame(
         [first, last, url, role, current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
-        index=["first", "last", "profile_linkedin_url", "role", "current_company", "city", "country",
-               "current_company_linkedin_url", "last_company",
-               "end_of_studies"]).T
+        index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
+               "Comapny LinkedIn URL", "Last Company", "Year of last Study"]).T
     return df
 
 
@@ -244,34 +260,45 @@ def get_contact_info(search_keywords, premium_plan=True):
     # Step 1
     driver.get(qlink.get_linkedin_profiles_search_url(search_keywords=search_keywords))
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    if premium_plan:
-        add = 2
+
+    #Check if search is empty
+    for h1 in soup.find_all("h1"):
+        no_search_result = (remove_all_extra_spaces(h1.text.replace("\n", "")) == "No results found")
+    if no_search_result:
+        return pd.DataFrame(
+            ["No Results, this person probably doesn't have a LinkedIn profile", "", "", "", "", "", "", "", "",
+             ""],
+            index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
+                   "Comapny LinkedIn URL", "Last Company", "Year of last Study"]).T
     else:
-        add = 0
-    attempts = 0
-    data = []
-    while attempts < 11:
-        try:
-            role = \
-            (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"][
-                "text"]
-            linkedin_profile_url = \
-            (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
+        if premium_plan:
+            add = 2
+        else:
+            add = 0
+        attempts = 0
+        data = []
+        while attempts < 11:
             try:
-                name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["image"][
-                    "accessibilityText"]
+                role = \
+                (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["primarySubtitle"][
+                    "text"]
+                linkedin_profile_url = \
+                (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["navigationUrl"]
+                try:
+                    name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][attempts])["image"][
+                        "accessibilityText"]
+                except:
+                    name = "Name Error"
+                data.append([role, linkedin_profile_url, name])
             except:
-                name = "Name Error"
-            data.append([role, linkedin_profile_url, name])
-        except:
-            pass
-        attempts += 1
-    data = pd.DataFrame(data, columns=["role", "url", "name"])
-    data["Full info"] = data["role"] + data["name"]
-    #Step 2 : find the best match thanks to difflib.get_close_matches
-    best_match = data[data["Full info"] == difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
-    #Step 3, 4 and 5
-    return get_profile_infos(best_match["url"].values[0])
+                pass
+            attempts += 1
+        data = pd.DataFrame(data, columns=["role", "url", "name"])
+        data["Full info"] = data["role"] + data["name"]
+        #Step 2 : find the best match thanks to difflib.get_close_matches
+        best_match = data[data["Full info"] == difflib.get_close_matches(search_keywords, data["Full info"], cutoff=0.)[0]]
+        #Step 3, 4 and 5
+        return get_profile_infos(best_match["url"].values[0])
 
 if 1 == 0:
     #################################### START TEST CODE ##############################################################

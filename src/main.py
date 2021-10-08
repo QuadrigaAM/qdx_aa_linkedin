@@ -24,7 +24,11 @@ def sheet1():
     data = []
     for search in to_search:
         data.append(get_contact_info(search))
-    sht1.range(6, 8).value = pd.concat(data)
+    data = pd.concat(data)
+    possible_investors = qrest.get_items_by_values(s_object="Account", search_values=data["current_company"], field_name = "Name")
+    data[["Possible SF Investor1", "Possible SF Inv2", "Possible SF Inv3"]] = pd.DataFrame(possible_investors, index = data.index)
+    sht1.range(6, 8).value = data
+
 def sheet2():
     wb = xw.Book(excel_path)
     sht1 = wb.sheets[1]
@@ -38,13 +42,11 @@ def sheet2():
     print(data)
     sht1.range(5, 9).value = data
 
-
 if __name__ == '__main__':
     if sys.argv[1] == "Sheet1":
         sheet1()
     if sys.argv[1] == "Sheet2":
         sheet2()
-
     ## make pipeline
     if 1 == 0:
         investors_datapoints = get_investor_datapoints(__INVESTORS__)
