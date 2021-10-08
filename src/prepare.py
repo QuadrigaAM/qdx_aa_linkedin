@@ -272,6 +272,7 @@ def get_contact_info(search_keywords, premium_plan=True):
 
     #Check if search is empty
     no_search_result = False
+
     for h1 in soup.find_all("h1"):
         no_search_result = (remove_all_extra_spaces(h1.text.replace("\n", "")) == "No results found")
     if no_search_result:
