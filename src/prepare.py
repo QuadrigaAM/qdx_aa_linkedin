@@ -204,7 +204,7 @@ def get_profile_infos(url):
             l.append(a.get('href'))
     l = [s for s in l if s != '']
     print(l)
-    role = l[l.index("Company Name") - 1]
+
     try:
         current_company = l[l.index("Company Name") + 1]
     except:
@@ -212,6 +212,14 @@ def get_profile_infos(url):
             for div in a.find_all("div"):
                 if div.get("aria-label") == "Current company":
                     current_company = remove_all_extra_spaces(div.text.replace("\n", ""))
+    try:
+        role = l[l.index("Company Name") - 1]
+    except:
+        for i, a in enumerate(soup.find_all("a")):
+            for img in a.find_all("img"):
+                if img.get("alt") == current_company:
+                    role = [h3.text for h3 in a.find_all("h3")][0]
+
     try:
         location = l[l.index("Location") + 1]
     except:
@@ -262,6 +270,7 @@ def get_contact_info(search_keywords, premium_plan=True):
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
     #Check if search is empty
+    no_search_result = False
     for h1 in soup.find_all("h1"):
         no_search_result = (remove_all_extra_spaces(h1.text.replace("\n", "")) == "No results found")
     if no_search_result:
