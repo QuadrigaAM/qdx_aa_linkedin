@@ -189,11 +189,8 @@ def remove_all_extra_spaces(string):
 
 def get_profile_infos(url):
     driver.get(url)
+    time.sleep(1)
     soup = BeautifulSoup(driver.page_source, 'html.parser')
-    mini_url = re.search('in/(.*)\?', url).group(1)
-    file = open(f"sample{mini_url}.html", "w", encoding='utf-8')
-    file.write(driver.page_source)
-    file.close()
     first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
     last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
 
@@ -204,22 +201,19 @@ def get_profile_infos(url):
         if "company" in a.get('href'):
             l.append(a.get('href'))
     l = [s for s in l if s != '']
-    print(l)
 
     try:
         current_company = l[l.index("Company Name") + 1]
     except:
+        print("we are in except")
         for i, a in enumerate(soup.find_all("a")):
             for div in a.find_all("div"):
+                print(div.get("aria-label"))
                 if div.get("aria-label") == "Current company":
                     current_company = remove_all_extra_spaces(div.text.replace("\n", ""))
-    try:
-        role = l[l.index("Company Name") - 1]
-    except:
-        for i, a in enumerate(soup.find_all("a")):
-            for img in a.find_all("img"):
-                if img.get("alt") == current_company:
-                    role = [h3.text for h3 in a.find_all("h3")][0]
+    print(current_company)
+    company_number = Counter(re.findall(r'fsd_company:(.*?)"', soup.text)).most_common(1)[0][0]
+    role = Counter(re.findall(fr'fsd_company:{company_number}","title":"(.*?)"', soup.text)).most_common(1)[0][0]
 
     try:
         location = l[l.index("Location") + 1]
@@ -246,9 +240,9 @@ def get_profile_infos(url):
         end_of_studies = ""
 
     df = pd.DataFrame(
-        [first, last, url, role, current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
+        [first.title(), last.title(), url, role.title(), current_company.title(), city.title(), country.title(), current_company_linkedin_url, last_company.title(), end_of_studies],
         index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
-               "Comapny LinkedIn URL", "Last Company", "Year of last Study"]).T
+               "Company LinkedIn URL", "Last Company", "Year of last Study"]).T
     return df
 
 
