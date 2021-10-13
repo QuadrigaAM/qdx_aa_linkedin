@@ -246,9 +246,9 @@ def get_profile_infos(url):
         end_of_studies = ""
 
     df = pd.DataFrame(
-        [first, last, url, role, current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
+        [first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
         index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
-               "Comapny LinkedIn URL", "Last Company", "Year of last Study"]).T
+               "Company LinkedIn URL", "Last Company", "Year of last Study"]).T
     return df
 
 
@@ -280,7 +280,7 @@ def get_contact_info(search_keywords, premium_plan=True):
             ["No Results, this person probably doesn't have a LinkedIn profile", "", "", "", "", "", "", "", "",
              ""],
             index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
-                   "Comapny LinkedIn URL", "Last Company", "Year of last Study"]).T
+                   "Company LinkedIn URL", "Last Company", "Year of last Study"]).T
     else:
         if premium_plan:
             add = 2
