@@ -20,13 +20,97 @@ import requests
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
-
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # from connection import QDXLinkedInSpyder
 from libs.qdx_aa_linkedin.src.connection import QDXLinkedInSpyder
 
 qlink = QDXLinkedInSpyder()
 error, driver = qlink.execute_auto_logging()
 
+def send_message(profile_url, message, premium_account=False):
+    driver.get(profile_url)
+    # is there a message button?
+    # if yes, take action? If yes, send message? if yes, which message?
+    # is there a invite button?
+    # if yes, take action? If yes, send invitation?
+    degree_path = "/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[2]/div[1]/div[1]/span/span[2]"
+    degree = driver.find_element_by_xpath(degree_path).text[0]
+    if degree == "1":
+        message_or_connect_button_xpath = "/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[3]/div/a"
+        message_or_connect_button = driver.find_element_by_xpath(message_or_connect_button_xpath)
+        button_text = message_or_connect_button.text
+    if degree == "2":
+        message_or_connect_button_xpath = '/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[3]/div/button[1]'
+        message_or_connect_button = driver.find_element_by_xpath(message_or_connect_button_xpath)
+        button_text = message_or_connect_button.text
+    if degree == "3":
+        print("3rd degree person, no message sent")
+        return "3rd degree person, no message sent"
+    """
+    if premium_account:
+    if message_or_connect_button.text == "View in Sales Navigator":
+        message_or_connect_button_xpath = "/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[3]/div/a"
+        message_or_connect_button = driver.find_element_by_xpath(message_or_connect_button_xpath)
+    message_is_main_button = message_or_connect_button.text == "Message"
+    print(message_is_main_button, message_or_connect_button.text)
+    if message_is_main_button:
+        if message != "":
+            message_or_connect_button.click()
+            text_area_xpath = '/html/body/div[7]/aside/div[2]/div[1]/form/div[3]/div/div[1]/div[1]/p'
+            text_area = driver.find_element_by_xpath(text_area_xpath)
+            text_area.click()
+            text_area.send_keys(message)
+            time.sleep(0.5)
+            send_button_xpath = '/html/body/div[7]/aside/div[2]/div[1]/form/footer/div[2]/div[1]/button'
+            send_button = driver.find_element_by_xpath((send_button_xpath))
+            send_button.click()
+        if send_invite:
+            more_button_xpath = '/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[3]/div/div/button'
+            more_button = driver.find_element_by_xpath(more_button_xpath)
+            more_button.click()
+            send_invite_xpath = '/html/body/div[7]/div[3]/div/div/div/div/div[3]/div/div/main/div/section/div[2]/div[3]/div/div/div/div/ul/li[4]/div'
+            send_invite = driver.find_element_by_xpath(send_invite_xpath)
+            send_invite.click()
+    if message_is_main_button == False:
+        if send_invite:
+            message_or_connect_button.click()
+        if message != "":
+            add_a_note_path = "/html/body/div[3]/div/div/div[3]/button[1]"
+            add_a_note_button = driver.find_element_by_xpath(add_a_note_path)
+            add_a_note_button.click()
+            text_area_path = "/html/body/div[3]/div/div/div[2]/div/textarea"
+            text_area = driver.find_element_by_xpath(text_area_path)
+            text_area.click()
+            text_area.send_keys(message)
+            time.sleep(0.5)
+            send_button_xpath = '/html/body/div[3]/div/div/div[3]/button[2]'
+            send_button = driver.find_element_by_xpath((send_button_xpath))
+            send_button.click()
+            """
+    if button_text == "Conectar":
+        message_or_connect_button.click()
+        nota_xpath = "/html/body/div[3]/div/div/div[3]/button[1]"
+        nota = driver.find_element_by_xpath(nota_xpath)
+        nota.click()
+        text_area_xpath = "/html/body/div[3]/div/div/div[2]/div[1]/textarea"
+        text_area = driver.find_element_by_xpath(text_area_xpath)
+        text_area.click()
+        text_area.send_keys(message)
+        send_button_xpath = '/html/body/div[3]/div/div/div[3]/button[2]'
+        send_button = driver.find_element_by_xpath(send_button_xpath)
+        send_button.click()
+        return "Message sent!"
+    if message_or_connect_button.text == "Enviar mensaje" and message is not None:
+        message_or_connect_button.click()
+        text_area_xpath = '/html/body/div[7]/aside/div[2]/div[1]/form/div[3]/div/div[1]/div[1]/p'
+        text_area = driver.find_element_by_xpath(text_area_xpath)
+        text_area.click()
+        text_area.send_keys(message)
+        time.sleep(0.5)
+        send_button_xpath = '/html/body/div[7]/aside/div[2]/div[1]/form/footer/div[2]/div[1]/button'
+        send_button = driver.find_element_by_xpath((send_button_xpath))
+        send_button.click()
+        return "Message sent!"
 
 def check_email(email_address):
     api_key = "978866a4-48ec-4233-84a2-5d332c32af15"
@@ -139,7 +223,7 @@ def remove_accents_lower(input_str):
 
 
 def find_useful_info_from_people_search(company_name: str, search_keywords: str, page: int, country: str,
-                                        premium_plan=True, search_email=False, detailed = True):  # TODO : set_location_to_madrid
+                                        premium_plan=False, search_email=False, detailed = True):  # TODO : set_location_to_madrid
     data = []
     searched_role = search_keywords
     driver.get(qlink.get_linkedin_profiles_search_url(company_name=company_name, search_keywords=search_keywords,
@@ -159,7 +243,7 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
             name = "Name Error"
         role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
         link = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["navigationUrl"]
-        print(i, name, role, place, link)
+        #print(i, name, role, place, link)
         data.append([name, role, place, link])
     linkedin_data = pd.DataFrame(data, columns=["Name", "Role", "Place", "LinkedIn Profile"])
     linkedin_data["First Name"] = linkedin_data["Name"].apply(lambda x: first_name(x))
@@ -176,10 +260,8 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
     if detailed == True:
         data = []
         for url in linkedin_data["LinkedIn Profile"]:
-            try:
+            if "headless" not in url:
                 data.append(get_profile_infos(url))
-            except:
-                pass
         print(data)
         return pd.concat(data)
 
@@ -189,11 +271,14 @@ def remove_all_extra_spaces(string):
 
 def get_profile_infos(url):
     driver.get(url)
+    time.sleep(0.5)
     soup = BeautifulSoup(driver.page_source, 'html.parser')
+    """
     mini_url = re.search('in/(.*)\?', url).group(1)
     file = open(f"sample{mini_url}.html", "w", encoding='utf-8')
     file.write(driver.page_source)
     file.close()
+    """
     first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
     last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
 
@@ -204,7 +289,7 @@ def get_profile_infos(url):
         if "company" in a.get('href'):
             l.append(a.get('href'))
     l = [s for s in l if s != '']
-    print(l)
+    #print(l)
 
     try:
         current_company = l[l.index("Company Name") + 1]
@@ -244,15 +329,16 @@ def get_profile_infos(url):
         end_of_studies = re.findall(r'\d+', end_of_studies)[-1]
     except:
         end_of_studies = ""
-
+    print([first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies])
     df = pd.DataFrame(
         [first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
         index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
                "Company LinkedIn URL", "Last Company", "Year of last Study"]).T
+
     return df
 
 
-def get_contact_info(search_keywords, premium_plan=True):
+def get_contact_info(search_keywords, premium_plan=False):
     """
     Aim : find information about someone using linkedin \n
     Step 1 : linkedin search with the keywords (usually full name and his firm) \n

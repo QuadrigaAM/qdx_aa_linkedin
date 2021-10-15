@@ -1,5 +1,6 @@
 import os
 import sys
+print("LinkedIn Connection.py")
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
@@ -13,6 +14,7 @@ from configparser import ConfigParser
 from googlesearch import search
 from bs4 import BeautifulSoup
 import requests
+from collections import Counter
 import selenium
 import logging
 import time
@@ -20,7 +22,12 @@ import re
 import os
 
 ## logging configuration
-dir_path =  os.path.dirname(os.path.realpath(__file__))
+try:
+    dir_path = "C:\\Users\\david.serero\\PycharmProjects\\qdx_aa_salesforce\\libs\\qdx_aa_linkedin\\src"
+except Exception as e:
+    print(e)
+    dir_path = os.getcwd()
+#print((dir_path), os.path.dirname(dir_path))
 logger = logging.getLogger(os.path.dirname(dir_path) + '\\logs\\log')
 logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(os.path.dirname(dir_path) + '\\logs\\log.log') # TODO: define multiple logs (one per pipeline)
@@ -38,8 +45,8 @@ BROWSER = config['configuration_parameters']['browser']
 DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
 #USERNAME = eval(config['configuration_parameters']['username'])
 #PASSWORD = eval(config['configuration_parameters']['password'])
-USERNAME = "davidserero97@gmail.com"
-PASSWORD = "smoldersbolds"
+USERNAME = "parrilla_diego@yahoo.com"
+PASSWORD = "DavidSerero1"
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 
 
@@ -73,6 +80,7 @@ class QDXLinkedInSpyder:
         self.browser = browser
         self.driver_filepath = driver_filepath
         self.username = username
+        print(self.username)
         self.password = password
         self.linkedin_url = linkedin_url
         self.username_xpath = '//*[@type="text"]'
@@ -81,7 +89,11 @@ class QDXLinkedInSpyder:
         self.recall_me_xpath = '//*[@type="submit"]'
         self.standard_query_beginning = 'site:linkedin.com/in/'
         self.standard_main_url = 'site:linkedin.com/company/'
-        self.web_driver = webdriver.Chrome(self.driver_filepath)
+        from selenium.webdriver.chrome.options import Options
+        options = Options()
+        options.add_argument("--log-level=3")
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        self.web_driver = webdriver.Chrome(self.driver_filepath, options = options)
         self.contact_info_url_extension = '/detail/contact-info'
         self.contact_info_url_extension_country_replacement = self.__COUNTRIES__.get(country.capitalize()) + '.'
 
@@ -181,7 +193,6 @@ class QDXLinkedInSpyder:
     def get_raw_data(self, driver_obj: selenium.webdriver, people_urls: list, content_retrieval: str = 'profile',
                      save_data: bool = True, filepath: str = 'default'): # TODO: review contact-info endpoint raw data
         """
-
         :param driver_obj:
         :param filepath:
         :param save_data:
@@ -297,13 +308,5 @@ class QDXLinkedInSpyder:
     def get_company_linkedin_number(self, company_name: str):
         company_linkedin_url = self.get_company_linkedin_link(company_name=company_name)
         self.web_driver.get(company_linkedin_url)
-        attempts = 0
-        while attempts < 5:
-            try:
-                href_string_with_info = self.web_driver.find_element_by_xpath(f'//*[@id="ember{47+attempts}"]').get_attribute("href")
-                pattern = "%22(.*?)%22"
-                company_linkedin_number = re.search(pattern, href_string_with_info).group(1)
-                break
-            except:
-                attempts += 1
+        company_linkedin_number = Counter(re.findall('currentCompany=%5B%22(.*?)%', self.web_driver.page_source)).most_common()[0][0]
         return company_linkedin_number
