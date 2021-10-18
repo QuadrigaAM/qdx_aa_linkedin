@@ -87,7 +87,7 @@ def send_message(profile_url, message, premium_account=False):
             send_button = driver.find_element_by_xpath((send_button_xpath))
             send_button.click()
             """
-    if button_text == "Conectar":
+    if button_text == "Connect":
         message_or_connect_button.click()
         nota_xpath = "/html/body/div[3]/div/div/div[3]/button[1]"
         nota = driver.find_element_by_xpath(nota_xpath)
@@ -100,7 +100,7 @@ def send_message(profile_url, message, premium_account=False):
         send_button = driver.find_element_by_xpath(send_button_xpath)
         send_button.click()
         return "Message sent!"
-    if message_or_connect_button.text == "Enviar mensaje" and message is not None:
+    if message_or_connect_button.text == "Message" and message is not None:
         message_or_connect_button.click()
         text_area_xpath = '/html/body/div[7]/aside/div[2]/div[1]/form/div[3]/div/div[1]/div[1]/p'
         text_area = driver.find_element_by_xpath(text_area_xpath)
@@ -249,7 +249,7 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
     linkedin_data["First Name"] = linkedin_data["Name"].apply(lambda x: first_name(x))
     linkedin_data["Last Name"] = linkedin_data["Name"].apply(lambda x: last_name(x))
     linkedin_data["Company Name"] = company_name
-    print(f"{len(linkedin_data)} people found, searching for their emails")
+    print(f"{len(linkedin_data)} people found")
     if search_email:
         tqdm.pandas()
         linkedin_data["Email"] = linkedin_data["Name"].progress_apply(
@@ -259,10 +259,9 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
         return linkedin_data
     if detailed == True:
         data = []
-        for url in linkedin_data["LinkedIn Profile"]:
+        for url in tqdm(linkedin_data["LinkedIn Profile"]):
             if "headless" not in url:
                 data.append(get_profile_infos(url))
-        print(data)
         return pd.concat(data)
 
 def remove_all_extra_spaces(string):
@@ -312,8 +311,16 @@ def get_profile_infos(url):
         location = ""
     location = location + " " + " ".join(re.findall(r'"defaultLocalizedName":"(.*?)"', soup.text))
     geotext = GeoText()
-    city = list(geotext.extract(location)["cities"].keys())[0]
-    country = list(geotext.extract(location)["countries"].keys())[0]
+    try:
+        city = list(geotext.extract(location)["cities"].keys())[0]
+    except:
+        city = None
+        print(f"Could not find exact city with {location} as location info")
+    try:
+        country = list(geotext.extract(location)["countries"].keys())[0]
+    except:
+        country = None
+        print(f"Could not find exact country with {location} as location info")
     try:
         current_company_linkedin_url = [s for s in l if "/company/" in s][0]
         if "linkedin.com" not in current_company_linkedin_url:
@@ -329,7 +336,8 @@ def get_profile_infos(url):
         end_of_studies = re.findall(r'\d+', end_of_studies)[-1]
     except:
         end_of_studies = ""
-    print([first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies])
+    print(f"First Name: {first.title()}, Last Name:{last.title()}, Url: {url}, Role: {role.title()}, Current Company: {current_company}, "
+          f"City: {city}, Country: {country}, Company Url: {current_company_linkedin_url}, Previous Company: {last_company}, Year of last Study: {end_of_studies}")
     df = pd.DataFrame(
         [first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
         index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",

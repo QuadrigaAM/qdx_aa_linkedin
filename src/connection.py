@@ -1,6 +1,5 @@
 import os
 import sys
-print("LinkedIn Connection.py")
 # sys.path.append(os.path.join(sys.path[0], 'src'))
 sys.path.append(os.getcwd() + '//' + 'src')
 sys.path.append(os.getcwd())
@@ -80,7 +79,6 @@ class QDXLinkedInSpyder:
         self.browser = browser
         self.driver_filepath = driver_filepath
         self.username = username
-        print(self.username)
         self.password = password
         self.linkedin_url = linkedin_url
         self.username_xpath = '//*[@type="text"]'
@@ -289,7 +287,6 @@ class QDXLinkedInSpyder:
 
     def get_linkedin_profiles_search_url(self, company_name: str = None, search_keywords: str = "", country: str = None, page: int = 1):
         if company_name is not None:
-            print("company is not none")
             company_linkedin_number = self.get_company_linkedin_number(company_name)
             compa_arg = f"""currentCompany=%5B%22{company_linkedin_number}%22%5D&"""
         else:
