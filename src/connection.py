@@ -22,14 +22,14 @@ import os
 
 ## logging configuration
 try:
-    dir_path = "C:\\Users\\david.serero\\PycharmProjects\\qdx_aa_salesforce\\libs\\qdx_aa_linkedin\\src"
+    dir_path = os.getcwd() + "\\libs\\qdx_aa_linkedin\\src"
 except Exception as e:
     print(e)
     dir_path = os.getcwd()
 #print((dir_path), os.path.dirname(dir_path))
 logger = logging.getLogger(os.path.dirname(dir_path) + '\\logs\\log')
 logger.setLevel(logging.DEBUG)
-file_handler = logging.FileHandler(os.path.dirname(dir_path) + '\\logs\\log.log') # TODO: define multiple logs (one per pipeline)
+file_handler = logging.FileHandler(os.path.dirname(dir_path) + '\\logs\\log.logs') # TODO: define multiple logs (one per pipeline)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname) - %(message)s')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
