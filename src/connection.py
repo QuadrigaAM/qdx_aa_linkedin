@@ -285,7 +285,7 @@ class QDXLinkedInSpyder:
                 ember_value -= 1
                 continue
 
-    def get_linkedin_profiles_search_url(self, company_name: str = None, search_keywords: str = "", country: str = None, page: int = 1):
+    def get_linkedin_profiles_search_url(self, company_name: str = None, search_keywords: str = "", country: str = None, page: int = 1, global_or_faced_search: str = "faced"):
         if company_name is not None:
             company_linkedin_number = self.get_company_linkedin_number(company_name)
             compa_arg = f"""currentCompany=%5B%22{company_linkedin_number}%22%5D&"""
@@ -299,7 +299,11 @@ class QDXLinkedInSpyder:
                 country_arg = """geoUrn=%5B"105015875"%5D&"""
         else:
             country_arg = ""
-        search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}{country_arg}keywords={search_keywords.replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
+        search_keywords = search_keywords.replace("\t", ' ')
+        if global_or_faced_search.lower() == "faced":
+            search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}{country_arg}keywords={search_keywords.replace('&', '%26').replace(' ', '%20')}&origin=FACETED_SEARCH&page={page}&sid=t%2CN"""
+        if global_or_faced_search.lower() == "global":
+            search_url = f"""https://www.linkedin.com/search/results/people/?{compa_arg}{country_arg}keywords={search_keywords.replace('&', '%26').replace(' ', '%20')}&origin=GLOBAL_SEARCH_HEADER&page={page}&sid=t%2CN"""
         return search_url
 
     def get_company_linkedin_number(self, company_name: str):

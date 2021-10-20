@@ -361,7 +361,9 @@ def get_contact_info(search_keywords, premium_plan=False):
     :return:
     """
     # Step 1
-    driver.get(qlink.get_linkedin_profiles_search_url(search_keywords=search_keywords))
+    print(search_keywords)
+    time.sleep(2)
+    driver.get(qlink.get_linkedin_profiles_search_url(search_keywords=search_keywords, global_or_faced_search = "global"))
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
     #Check if search is empty
