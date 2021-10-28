@@ -229,20 +229,29 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
     driver.get(qlink.get_linkedin_profiles_search_url(company_name=company_name, search_keywords=search_keywords,
                                                       country=country, page=page))
     soup = BeautifulSoup(driver.page_source, "html.parser")
+    n_results = int(re.findall(r'"totalResultCount":(.*?),', soup.text)[0])
     if premium_plan:
         add = 2
     else:
         add = 0
-    for i in range(10, 20):
-        place = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["secondarySubtitle"][
-            "text"]
+    for i in range(n_results, n_results+n_results):
         try:
             name = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["image"][
                 "accessibilityText"]
         except:
             name = "Name Error"
-        role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
-        link = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["navigationUrl"]
+        try:
+            place = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["secondarySubtitle"]["text"]
+        except:
+            place = ""
+        try:
+            role = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["primarySubtitle"]["text"]
+        except:
+            role = ""
+        try:
+            link = (json.loads((soup.find_all("code")[14 + add].contents[0])[3:])["included"][i])["navigationUrl"]
+        except:
+            link = ""
         #print(i, name, role, place, link)
         data.append([name, role, place, link])
     linkedin_data = pd.DataFrame(data, columns=["Name", "Role", "Place", "LinkedIn Profile"])
@@ -260,9 +269,13 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
     if detailed == True:
         data = []
         for url in tqdm(linkedin_data["LinkedIn Profile"]):
-            if "headless" not in url:
+            if ("headless" not in url) and (url != ""):
                 data.append(get_profile_infos(url))
-        return pd.concat(data)
+        try:
+            data = pd.concat(data)
+        except ValueError:
+            data = pd.DataFrame()
+        return data
 
 def remove_all_extra_spaces(string):
     return " ".join(string.split())
