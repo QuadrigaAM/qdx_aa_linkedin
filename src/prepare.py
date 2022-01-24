@@ -278,9 +278,9 @@ def get_profile_infos(url):
     file.write(driver.page_source)
     file.close()
     """
-    first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(1)[0][0]
-    last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(1)[0][0]
-
+    first = Counter(re.findall(r',"firstName":"(.*?)"', soup.text)).most_common(2)[1][0]
+    last = Counter(re.findall(r',"lastName":"(.*?)"', soup.text)).most_common(2)[1][0]
+    print(first)
     l = []
     for i, a in enumerate(soup.find_all("a")):
         for s in a.text.split("\n"):
@@ -297,13 +297,16 @@ def get_profile_infos(url):
             for div in a.find_all("div"):
                 if div.get("aria-label") == "Current company":
                     current_company = remove_all_extra_spaces(div.text.replace("\n", ""))
+
     try:
-        role = l[l.index("Company Name") - 1]
+        role = driver.find_element_by_xpath('/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]').text
     except:
-        for i, a in enumerate(soup.find_all("a")):
-            for img in a.find_all("img"):
-                if img.get("alt") == current_company:
-                    role = [h3.text for h3 in a.find_all("h3")][0]
+        try:
+            role = driver.find_element_by_xpath(
+                '/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]').text
+        except:
+            role = ""
+    print(role)
 
     try:
         location = l[l.index("Location") + 1]
@@ -339,7 +342,7 @@ def get_profile_infos(url):
     print(f"First Name: {first.title()}, Last Name:{last.title()}, Url: {url}, Role: {role.title()}, Current Company: {current_company}, "
           f"City: {city}, Country: {country}, Company Url: {current_company_linkedin_url}, Previous Company: {last_company}, Year of last Study: {end_of_studies}")
     df = pd.DataFrame(
-        [first.title(), last.title(), url, role.title(), current_company, city, country, current_company_linkedin_url, last_company, end_of_studies],
+        [first.title(), last.title(), url, role.title(), current_company.upper(), city, country, current_company_linkedin_url, last_company, end_of_studies],
         index=["First Name", "Last Name", "LinkedIn URL", "Role", "Current Company", "City", "Country",
                "Company LinkedIn URL", "Last Company", "Year of last Study"]).T
 
