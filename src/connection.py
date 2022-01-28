@@ -77,7 +77,7 @@ else:
 
 # DRIVER_FILEPATH = config['configuration_parameters']['driver_filepath']
 USERNAME = 'world.financial.reporting.data@gmail.com' # FIXME: eval(config['configuration_parameters']['username'])
-PASSWORD = '2506Dsd2220322' # FIXME: eval(config['configuration_parameters']['password'])
+PASSWORD = 'QuadrigaData2021!' # FIXME: eval(config['configuration_parameters']['password'])
 LINKEDIN_URL = config['configuration_parameters']['linkedin_url']
 SQL_DATABASE_TYPE = config['quadriga_ai_server']['sql_database_type']
 SQL_DATABASE_USERNAME = config['quadriga_ai_server']['sql_database_username']
