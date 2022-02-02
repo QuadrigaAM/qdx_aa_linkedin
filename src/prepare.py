@@ -267,6 +267,18 @@ def find_useful_info_from_people_search(company_name: str, search_keywords: str,
 def remove_all_extra_spaces(string):
     return " ".join(string.split())
 
+def find_text_multiple_xpaths(xpaths, illegal_string):
+    """
+    the aim here is to return the text of field we are searching for. Continue looking into the list of xpaths until it is valid. Then use it and get .text attribute
+    """
+    for xpath in xpaths:
+        try:
+            text = driver.find_element_by_xpath(xpath).text
+            if illegal_string.lower() not in text.lower():
+                return text
+        except:
+            pass
+    return ""
 
 def get_profile_infos(url):
     driver.get(url)
@@ -292,20 +304,38 @@ def get_profile_infos(url):
 
     try:
         current_company = l[l.index("Company Name") + 1]
+        print("print normal")
     except:
-        for i, a in enumerate(soup.find_all("a")):
-            for div in a.find_all("div"):
-                if div.get("aria-label") == "Current company":
-                    current_company = remove_all_extra_spaces(div.text.replace("\n", ""))
+        current_company_xpaths = [
+            '/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[3]/div[3]/ul/li[1]/div/div[2]/div/div[1]/span[1]/span[1]',
+            '/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div/div[1]/span[1]/span[1]',
+            "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[5]/div[3]/ul/li[1]/div/div[2]/div[1]/div[1]/span[1]/span[1]",
+            
+            '/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[3]/div[3]/ul/li[1]/div/div[2]/div/div[1]/span[1]/span[1]',
+            '/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div/div[1]/span[1]/span[1]',
 
-    try:
-        role = driver.find_element_by_xpath('/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]').text
-    except:
-        try:
-            role = driver.find_element_by_xpath(
-                '/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]').text
-        except:
-            role = ""
+            "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[3]/div[3]/ul/li[1]/div/div[2]/div[1]/a/div/span/span[1]",
+            "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div[1]/a/div/span/span[1]",
+            "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[5]/div[3]/ul/li[1]/div/div[2]/div[1]/a/div/span/span[1]"
+                                  ]
+        current_company = find_text_multiple_xpaths(current_company_xpaths, first)
+
+    roles_xpaths = [
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[3]/div[3]/ul/li[1]/div/div[2]/div/div[1]/div/span/span[1]",
+        '/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]',
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div/div[1]/div/span/span[1]",
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[5]/div[3]/ul/li[1]/div/div[2]/div[1]/div[1]/div/span/span[1]",
+
+        "/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[5]/div[3]/ul/li[1]/div/div[2]/div/div[1]/span[1]/span[1]",
+        '/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[2]/ul/li/div/div[2]/div/div[1]/div/span/span[1]',
+        '/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div/div[1]/div/span/span[1]',
+        '/html/body/div[7]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div/div[1]/div/span/span[1]',
+
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[4]/div[3]/ul/li[1]/div/div[2]/div[2]/ul/li[1]/div/div[2]/div/a/div/span/span[1]",
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[3]/div[3]/ul/li[1]/div/div[2]/div[2]/ul/li[1]/div/div[2]/div/a/div/span/span[1]",
+        "/html/body/div[6]/div[3]/div/div/div[2]/div/div/main/section[5]/div[3]/ul/li[1]/div/div[2]/div[2]/ul/li[1]/div/div[2]/div[1]/a/div/span/span[1]"
+    ]
+    role = find_text_multiple_xpaths(roles_xpaths, first)
     print(role)
 
     try:
